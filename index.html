@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تيلي-مانجر برو | السفاح الشمالي</title>
+    <!-- استدعاء خط Cairo وأيقونات Font Awesome -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css?v=28">
+    <style>
+        .fade-step {
+            transition: all 0.35s ease-in-out;
+        }
+        .step-hidden {
+            display: none !important;
+            opacity: 0;
+            transform: scale(0.97);
+        }
+        .active-phone-pill {
+            background: rgba(56, 189, 248, 0.12);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            color: #38bdf8;
+            padding: 6px 14px;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 800;
+            direction: ltr !important;
+            display: inline-block;
+            margin-bottom: 12px;
+            text-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+        }
+        .btn-cancel-action {
+            background: var(--btn-red-normal);
+            color: #ffffff;
+            border: none;
+            padding: 12px 18px;
+            border-radius: 14px;
+            font-weight: 800;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            animation: glowRedBreath 2.5s infinite alternate;
+            transition: all 0.25s ease;
+        }
+        .btn-cancel-action:hover {
+            background: var(--btn-red-hover);
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 8px 22px rgba(255, 8, 68, 0.65);
+        }
+
+        /* نافذة التأكيد */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            opacity: 0;
+            pointer-events: none;
+            transition: 0.3s ease;
+        }
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .modal-box {
+            background: var(--card-bg, #0f172a);
+            border: 1.5px solid rgba(239, 68, 68, 0.4);
+            border-radius: 20px;
+            padding: 24px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+            text-align: center;
+        }
+        .modal-box h3 { color: #ef4444; font-size: 18px; margin-bottom: 10px; }
+        .modal-box p { font-size: 13.5px; color: var(--text-sub, #94a3b8); margin-bottom: 16px; line-height: 1.6; }
+        .modal-box input {
+            width: 100%;
+            padding: 10px;
+            border-radius: 10px;
+            border: 1.5px solid rgba(255, 255, 255, 0.15);
+            background: rgba(0, 0, 0, 0.3);
+            color: #fff;
+            text-align: center;
+            font-weight: 700;
+            margin-bottom: 16px;
+            outline: none;
+        }
+        .modal-box input:focus { border-color: #ef4444; }
+        .modal-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    </style>
+</head>
+<body>
+
+<div id="toast-zone"></div>
+
+<!-- نافذة تأكيد حذف الجلسة -->
+<div class="modal-overlay" id="confirmModal">
+    <div class="modal-box">
+        <i class="fas fa-triangle-exclamation" style="font-size: 36px; color: #ef4444; margin-bottom: 10px;"></i>
+        <h3>إنهاء وحذف الجلسة</h3>
+        <p>سيتم تسجيل الخروج نهائياً من حساب تيليجرام وحذف الرقم من المخزون.<br>لتأكيد العملية، يرجى كتابة كلمة <strong>تأكيد</strong> أدناه:</p>
+        <input type="text" id="confirmInputText" placeholder="اكتب تأكيد هنا">
+        <div class="modal-actions">
+            <button class="btn-cancel-action" id="btnConfirmDeleteAction">
+                <i class="fas fa-trash"></i> <span>حذف نهائي</span>
+            </button>
+            <button class="ui-btn btn-theme" style="padding: 10px; justify-content: center; width: 100%;" id="btnCancelModal">
+                <span>تراجع</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- نافذة خيارات النسخ الاحتياطي التفاعلية -->
+<div class="modal-overlay" id="backupModal">
+    <div class="backup-modal-card">
+        <i class="fas fa-box-archive" style="font-size: 40px; color: #38bdf8; margin-bottom: 10px; text-shadow: 0 0 15px rgba(56, 189, 248, 0.6);"></i>
+        <h3 style="color: #fff; font-size: 19px; font-weight: 900; margin-bottom: 6px;">النسخ الاحتياطي الشامل</h3>
+        <p style="font-size: 13px; color: var(--text-sub); margin-bottom: 18px; line-height: 1.6;">
+            اختر وجهة حفظ النسخة الاحتياطية لمشروعك (تشمل جميع الأكواد وتفريغ قاعدة البيانات SQL):
+        </p>
+
+        <!-- خيار 1: تحميل مباشر على اللابتوب (أيقونة لابتوب ظاهرة ودقيقة) -->
+        <button type="button" class="backup-option-btn" id="btnBackupDownload">
+            <div style="background: rgba(2, 132, 199, 0.2); border: 1px solid #0284c7; width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; color: #38bdf8; flex-shrink: 0;">
+                <i class="fas fa-laptop"></i>
+            </div>
+            <div>
+                <strong style="display: block; font-size: 14px; margin-bottom: 2px;">تحميل على اللابتوب</strong>
+                <span style="font-size: 11.5px; color: var(--text-sub);">تنزيل ملف ZIP مباشر إلى جهازك</span>
+            </div>
+        </button>
+
+        <!-- خيار 2: إرسال عبر بوت تيليجرام -->
+        <button type="button" class="backup-option-btn" id="btnBackupTelegram">
+            <div style="background: rgba(99, 102, 241, 0.2); border: 1px solid #6366f1; width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 18px; color: #818cf8; flex-shrink: 0;">
+                <i class="fab fa-telegram"></i>
+            </div>
+            <div>
+                <strong style="display: block; font-size: 14px; margin-bottom: 2px;">إرسال عبر تيليجرام</strong>
+                <span style="font-size: 11.5px; color: var(--text-sub);">إرسال ملف النسخة لمحادثتك الخاصة</span>
+            </div>
+        </button>
+
+        <button type="button" class="ui-btn btn-theme" style="width: 100%; margin-top: 6px; padding: 10px; justify-content: center;" id="btnCloseBackupModal">
+            <span>إغلاق</span>
+        </button>
+    </div>
+</div>
+
+<div class="app-shell">
+    <div class="action-bar">
+        <button class="btn-theme" id="themeBtn" title="تبديل المظهر">
+            <i class="fas fa-sun" id="themeIco"></i>
+        </button>
+
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <a href="automation.html" class="btn-automation-nav">
+                <i class="fas fa-robot"></i> <span>التحكم الآلي بالجلسات</span>
+            </a>
+
+            <div class="stock-indicator">
+                <span>المخزون النشط:</span>
+                <strong id="activeStockCount">0</strong>
+                <button class="btn-refresh" id="btnRefresh" title="تحديث المخزون">
+                    <i class="fas fa-rotate"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ترويسة الصفحة -->
+    <div class="header-panel">
+        <div class="avatar-holder">
+            <img id="headerAvatar" src="bg2.jpg" alt="Logo" class="custom-avatar-img">
+        </div>
+        <div class="panel-content">
+            <h1>تيلي-مانجر برو</h1>
+            <div class="author-badge"><i class="fas fa-bolt"></i> المطور السفاح الشمالي</div>
+            <p>منصة سحب وإدارة جلسات تيليجرام الفورية</p>
+        </div>
+    </div>
+
+    <!-- بطاقة التفاعل الذكية -->
+    <div class="dash-card">
+        
+        <!-- المرحلة 1: طلب الكود للشريحة -->
+        <div id="phoneStep" class="fade-step">
+            <div class="dash-card-header">
+                <h2 class="step-title"><span class="badge-index">1</span> طلب كود التحقق للشريحة</h2>
+                <span class="btn-wipe" id="btnResetFields"><i class="fas fa-eraser"></i> تفريغ</span>
+            </div>
+
+            <div class="flags-grid">
+                <span class="flag-chip" data-code="+963">سوريا (+963)</span>
+                <span class="flag-chip" data-code="+964">العراق (+964)</span>
+                <span class="flag-chip" data-code="+966">السعودية (+966)</span>
+                <span class="flag-chip" data-code="+971">الإمارات (+971)</span>
+                <span class="flag-chip" data-code="+20">مصر (+20)</span>
+                <span class="flag-chip" data-code="+90">تركيا (+90)</span>
+            </div>
+
+            <label class="input-caption">رقم الهاتف مع المفتاح الدولي</label>
+            <div class="input-wrapper">
+                <input type="text" id="phoneInput" placeholder="+9639xxxxxxxx" dir="ltr">
+                <i class="fas fa-phone input-icon-right"></i>
+            </div>
+
+            <div class="actions-2col">
+                <button type="button" class="ui-btn btn-fill-blue" id="btnRequestSms">
+                    <i class="fas fa-paper-plane"></i> <span>طلب الكود</span>
+                </button>
+                <button type="button" class="ui-btn btn-outline-amber" id="btnForceSms">
+                    <i class="fas fa-bolt"></i> <span>إجبار SMS</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- المرحلة 2: إدخال الكود -->
+        <div id="codeStep" class="fade-step step-hidden">
+            <div class="dash-card-header">
+                <h2 class="step-title"><span class="badge-index">2</span> إدخال رمز التحقق</h2>
+            </div>
+
+            <div style="text-align: center;">
+                <div class="active-phone-pill" id="currentPhoneDisplay">+963xxxxxxx</div>
+            </div>
+
+            <label class="input-caption">رمز التحقق الواصل في الرسالة</label>
+            <div class="input-wrapper">
+                <input type="text" id="codeInput" placeholder="مثال: 48921" dir="ltr">
+                <i class="fas fa-key input-icon-right"></i>
+            </div>
+
+            <div class="actions-2col">
+                <button type="button" class="ui-btn btn-block-emerald" id="btnVerify" style="margin-top:0;">
+                    <i class="fas fa-check-double"></i> <span>تثبيت وحفظ الجلسة</span>
+                </button>
+                <button type="button" class="btn-cancel-action" id="btnCancelCode">
+                    <i class="fas fa-xmark"></i> <span>إلغاء</span>
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- قسم الجلسات في المخزون -->
+    <div class="dash-card fade-step" id="inventoryCard">
+        <div class="dash-card-header">
+            <h2 class="step-title"><span class="badge-index">3</span> الجلسات الجاهزة في المخزون</h2>
+        </div>
+        <div id="numbersList" class="records-list"></div>
+    </div>
+</div>
+
+<!-- الشريط السفلي التفاعلي المزدوج: تواصل + نسخة احتياطية -->
+<div class="bottom-floating-bar">
+    <a href="https://wa.me/963959776593" target="_blank" class="floating-btn-action floating-btn-whatsapp">
+        <i class="fab fa-whatsapp" style="font-size: 17px;"></i> <span>تواصل مع المطور</span>
+    </a>
+    <button type="button" class="floating-btn-action floating-btn-backup" id="btnOpenBackupModal">
+        <i class="fas fa-box-archive" style="font-size: 16px;"></i> <span>نسخة احتياطية</span>
+    </button>
+</div>
+
+<script src="app.js?v=28"></script>
+</body>
+</html>

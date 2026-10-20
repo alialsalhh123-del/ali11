@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدارة وسحب الجلسات | تيلي-مانجر برو</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css?v=32">
+    <style>
+        .session-box {
+            background: var(--card-bg);
+            border: 1.5px solid var(--border-color);
+            border-radius: 22px;
+            padding: 22px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+            transition: all 0.3s ease;
+        }
+        .session-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .session-info-group {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 6px;
+            text-align: right;
+        }
+        .session-badges-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .session-badge-title {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(139, 92, 246, 0.2);
+            border: 1px solid rgba(139, 92, 246, 0.45);
+            color: #c084fc;
+            padding: 2px 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 800;
+            width: fit-content;
+        }
+        .account-badge-title {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(56, 189, 248, 0.15);
+            border: 1px solid rgba(56, 189, 248, 0.4);
+            color: #38bdf8;
+            padding: 2px 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 800;
+            width: fit-content;
+        }
+        .phone-tag {
+            font-size: 20px;
+            font-weight: 900;
+            color: #38bdf8;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+            margin-right: 2px;
+        }
+
+        /* أنيميشن التوهج الحيوي للأزرار التفاعلية (نسخ الرقم والكود) */
+        @keyframes cyberFlowGlow {
+            0% { background-position: 0% 50%; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4); }
+            50% { background-position: 100% 50%; box-shadow: 0 8px 24px rgba(0, 242, 254, 0.75), 0 0 14px rgba(139, 92, 246, 0.5); }
+            100% { background-position: 0% 50%; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4); }
+        }
+
+        .btn-alive-action {
+            background: linear-gradient(135deg, #0284c7, #2563eb, #8b5cf6, #06b6d4);
+            background-size: 250% 250%;
+            animation: cyberFlowGlow 3.5s ease infinite;
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 800;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            outline: none;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .btn-alive-action:hover {
+            transform: translateY(-3px) scale(1.06);
+            filter: brightness(1.15);
+        }
+        .btn-alive-action:active {
+            transform: scale(0.96);
+        }
+        .btn-alive-action.copied {
+            background: linear-gradient(135deg, #10b981, #059669) !important;
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.7) !important;
+        }
+
+        /* حاوية عرض الكود مع زر النسخ بجانبه */
+        .code-display-area {
+            background: rgba(0, 0, 0, 0.45);
+            border: 1.5px dashed rgba(255, 255, 255, 0.3);
+            border-radius: 18px;
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        .code-text-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            text-align: right;
+        }
+        .code-label-caption {
+            font-size: 12px;
+            color: var(--text-sub);
+            font-weight: 800;
+        }
+        .code-number {
+            font-size: 30px;
+            font-weight: 900;
+            letter-spacing: 6px;
+            color: #10b981;
+            direction: ltr !important;
+            text-shadow: 0 0 14px rgba(16, 185, 129, 0.6);
+            font-family: monospace;
+        }
+
+        .login-alert-banner {
+            background: rgba(16, 185, 129, 0.15);
+            border: 1px solid #10b981;
+            color: #10b981;
+            padding: 8px 12px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 700;
+            display: none;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.25);
+        }
+        .grid-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        .btn-disabled {
+            opacity: 0.5 !important;
+            cursor: not-allowed !important;
+            pointer-events: none;
+        }
+        .countdown-info {
+            font-size: 13px;
+            color: #fbbf24;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .bottom-actions-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 4px;
+        }
+
+        /* زر إلغاء السحب الناري */
+        @keyframes glowCancelBreath {
+            0% { box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35); }
+            100% { box-shadow: 0 8px 24px rgba(234, 88, 12, 0.75), 0 0 14px rgba(239, 68, 68, 0.5); }
+        }
+
+        .btn-cancel-pull-box {
+            background: linear-gradient(135deg, #d97706, #f59e0b, #ea580c);
+            border: none;
+            color: #ffffff;
+            padding: 10px 12px;
+            border-radius: 12px;
+            font-weight: 800;
+            font-size: 13px;
+            cursor: pointer;
+            width: 100%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            animation: glowCancelBreath 2.4s infinite alternate;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .btn-cancel-pull-box:hover {
+            transform: translateY(-4px) scale(1.02);
+            background: linear-gradient(135deg, #ffb300, #f77062);
+            box-shadow: 0 12px 26px rgba(255, 179, 0, 0.65);
+        }
+
+        .btn-terminate-full {
+            background: linear-gradient(135deg, #dc2626, #991b1b);
+            border: none;
+            color: #ffffff;
+            padding: 10px 12px;
+            border-radius: 12px;
+            font-weight: 800;
+            font-size: 13px;
+            cursor: pointer;
+            width: 100%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            animation: glowRedBreath 2.4s infinite alternate;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .btn-terminate-full:hover {
+            transform: translateY(-4px) scale(1.02);
+            background: linear-gradient(135deg, #ff0844, #ffb199);
+            box-shadow: 0 12px 26px rgba(255, 8, 68, 0.7);
+        }
+
+        /* نافذة التأكيد مع سهم الرجوع */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.78);
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 99999;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .modal-box {
+            position: relative;
+            background: var(--card-bg, #0f172a);
+            border: 1.5px solid rgba(239, 68, 68, 0.45);
+            border-radius: 22px;
+            padding: 28px 24px 24px 24px;
+            width: 90%;
+            max-width: 410px;
+            box-shadow: 0 15px 45px rgba(0,0,0,0.65), 0 0 25px rgba(239, 68, 68, 0.25);
+            text-align: center;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            transform: scale(0.92);
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .modal-overlay.active .modal-box {
+            transform: scale(1);
+        }
+
+        .modal-corner-close {
+            position: absolute;
+            top: 14px;
+            left: 14px;
+            width: 36px;
+            height: 36px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid var(--border-color);
+            color: var(--text-sub);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            outline: none;
+        }
+        .modal-corner-close:hover {
+            transform: scale(1.12);
+            background: rgba(239, 68, 68, 0.25);
+            border-color: #ef4444;
+            color: #ffffff;
+            box-shadow: 0 0 12px rgba(239, 68, 68, 0.5);
+        }
+
+        .modal-box h3 {
+            color: #ef4444;
+            font-size: 19px;
+            font-weight: 900;
+            margin-bottom: 8px;
+            text-shadow: 0 0 12px rgba(239, 68, 68, 0.4);
+        }
+        .modal-box p {
+            font-size: 13.5px;
+            color: var(--text-sub, #94a3b8);
+            margin-bottom: 16px;
+            line-height: 1.6;
+        }
+        .modal-box input {
+            width: 100%;
+            padding: 12px;
+            border-radius: 14px;
+            border: 1.5px solid rgba(239, 68, 68, 0.4);
+            background: rgba(0, 0, 0, 0.45);
+            color: #fff;
+            text-align: center;
+            font-size: 15px;
+            font-weight: 800;
+            margin-bottom: 18px;
+            outline: none;
+            transition: 0.25s ease;
+        }
+        .modal-box input:focus {
+            border-color: #ef4444;
+            box-shadow: 0 0 16px rgba(239, 68, 68, 0.5);
+        }
+        .modal-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        @keyframes pulseDeleteBtn {
+            0% { box-shadow: 0 4px 14px rgba(220, 38, 38, 0.4); }
+            100% { box-shadow: 0 8px 24px rgba(255, 8, 68, 0.8), 0 0 15px rgba(239, 68, 68, 0.6); }
+        }
+        .btn-confirm-del {
+            background: linear-gradient(135deg, #dc2626, #ef4444, #b91c1c);
+            color: #fff;
+            border: none;
+            padding: 12px;
+            border-radius: 14px;
+            font-weight: 900;
+            font-size: 14px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            animation: pulseDeleteBtn 2.2s infinite alternate;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .btn-confirm-del:hover {
+            transform: translateY(-4px) scale(1.04);
+            background: linear-gradient(135deg, #ff0844, #ff5757);
+            box-shadow: 0 12px 28px rgba(255, 8, 68, 0.8);
+        }
+
+        @keyframes pulseBackBtn {
+            0% { box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35); }
+            100% { box-shadow: 0 8px 22px rgba(56, 189, 248, 0.65), 0 0 12px rgba(2, 132, 199, 0.4); }
+        }
+        .btn-cancel-modal-alive {
+            background: linear-gradient(135deg, #0284c7, #1d4ed8);
+            color: #ffffff;
+            border: none;
+            padding: 12px;
+            border-radius: 14px;
+            font-weight: 800;
+            font-size: 14px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            animation: pulseBackBtn 2.2s infinite alternate;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .btn-cancel-modal-alive:hover {
+            transform: translateY(-4px) scale(1.04);
+            background: linear-gradient(135deg, #00f2fe, #4facfe);
+            box-shadow: 0 12px 26px rgba(0, 242, 254, 0.65);
+            color: #ffffff;
+        }
+    </style>
+</head>
+<body>
+
+<div id="toast-zone"></div>
+
+<!-- نافذة التأكيد المنبثقة التفاعلية -->
+<div class="modal-overlay" id="confirmModal">
+    <div class="modal-box">
+        <button type="button" class="modal-corner-close" id="btnCornerCloseModal" title="رجوع / إغلاق">
+            <i class="fas fa-arrow-left"></i>
+        </button>
+
+        <i class="fas fa-triangle-exclamation" style="font-size: 38px; color: #ef4444; margin-bottom: 10px; text-shadow: 0 0 15px rgba(239, 68, 68, 0.6);"></i>
+        <h3>إنهاء وحذف الجلسة</h3>
+        <p>سيتم تسجيل الخروج نهائياً من حساب تيليجرام وحذف الرقم.<br>لتأكيد العملية، يرجى كتابة كلمة <strong>تأكيد</strong> أدناه:</p>
+        
+        <input type="text" id="confirmInputText" placeholder="اكتب تأكيد هنا">
+        
+        <div class="modal-actions">
+            <button type="button" class="btn-cancel-modal-alive" id="btnCancelModal">
+                <i class="fas fa-rotate-left"></i> <span>تراجع</span>
+            </button>
+            <button type="button" class="btn-confirm-del" id="btnConfirmDeleteAction">
+                <i class="fas fa-trash-can"></i> <span>حذف نهائي</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="app-shell">
+    <div class="action-bar">
+        <a href="index.html" class="btn-theme" style="text-decoration:none;" title="الرجوع للرئيسية">
+            <i class="fas fa-arrow-right"></i>
+        </a>
+        <div class="stock-indicator">
+            <span>الجلسات المتاحة:</span>
+            <strong id="sessionCount">0</strong>
+        </div>
+    </div>
+
+    <div class="header-panel">
+        <div class="avatar-holder">
+            <img src="bg2.jpg" alt="Logo" class="custom-avatar-img">
+        </div>
+        <div class="panel-content">
+            <h1>سحب واستلام الأكواد</h1>
+            <div class="author-badge"><i class="fas fa-sim-card"></i> إدارة الجلسات المؤكدة</div>
+            <p>انسخ الرقم، اطلب الكود بهاتفك، واجلبه هنا بضغطة زر</p>
+        </div>
+    </div>
+
+    <!-- قائمة الجلسات -->
+    <div id="sessionsList" style="display: flex; flex-direction: column; gap: 16px;"></div>
+</div>
+
+<script>
+const API_URL = 'api.php';
+let targetPhoneToDelete = '';
+
+function notify(text, type = 'info') {
+    const box = document.getElementById('toast-zone');
+    if (!box) return;
+    const toast = document.createElement('div');
+    toast.className = `toast-msg toast-${type}`;
+    let icon = type === 'success' ? 'fa-check-circle' : (type === 'error' ? 'fa-circle-exclamation' : 'fa-info-circle');
+    toast.innerHTML = `<i class="fas ${icon}"></i> <span>${text}</span>`;
+    box.appendChild(toast);
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(-10px)';
+        toast.style.transition = '0.3s';
+        setTimeout(() => toast.remove(), 3500);
+    }, 3500);
+}
+
+function getTargetPhoneFromUrl() {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('phone');
+}
+
+async function loadSessions() {
+    try {
+        const res = await fetch(`${API_URL}?action=list_numbers`);
+        const list = await res.json();
+        const container = document.getElementById('sessionsList');
+        const count = document.getElementById('sessionCount');
+
+        container.innerHTML = '';
+
+        if (!Array.isArray(list) || list.length === 0) {
+            count.textContent = '0';
+            container.innerHTML = `<div class="dash-card" style="text-align:center; color:var(--text-sub); font-weight:700;">لا توجد جلسات مؤكدة جاهزة حالياً في النظام</div>`;
+            return;
+        }
+
+        const targetPhone = getTargetPhoneFromUrl();
+        let displayList = list;
+
+        if (targetPhone) {
+            const cleanTarget = targetPhone.replace('+', '').trim();
+            const matched = list.filter(item => item.phone.replace('+', '').trim() === cleanTarget);
+            if (matched.length > 0) displayList = matched;
+        }
+
+        count.textContent = displayList.length;
+
+        displayList.forEach(item => {
+            const card = document.createElement('div');
+            card.className = 'session-box';
+            
+            let statusText = '';
+            const isAlreadyActive = item.expire_at ? true : false;
+            
+            if (isAlreadyActive) {
+                statusText = `<div class="countdown-info"><i class="fas fa-clock"></i> نشط: سيتم إنهاء الجلسة بعد ساعة (ينتهي: ${item.expire_at})</div>`;
+            }
+
+            const sessionName = item.session_name || 'السفاح الشمالي';
+            const tgName = item.telegram_name ? item.telegram_name.trim() : '';
+
+            card.innerHTML = `
+                <div class="session-top">
+                    <div class="session-info-group">
+                        <div class="session-badges-row">
+                            <span class="session-badge-title"><i class="fas fa-crown"></i> ${sessionName}</span>
+                            ${tgName ? `
+                            <span class="account-badge-title">
+                                <i class="fas fa-user-circle"></i> ${tgName}
+                            </span>
+                            ` : ''}
+                        </div>
+                        <div class="phone-tag">
+                            <i class="fas fa-phone-flip"></i>
+                            <span dir="ltr" style="display:inline-block;">${item.phone}</span>
+                        </div>
+                    </div>
+                    <button class="btn-alive-action" onclick="copyNumber('${item.phone}', this)">
+                        <i class="far fa-copy"></i> <span>نسخ الرقم</span>
+                    </button>
+                </div>
+
+                <div class="code-display-area">
+                    <div class="code-text-wrapper">
+                        <span class="code-label-caption">رمز التحقق الوارد:</span>
+                        <div class="code-number" id="code-${item.phone}">------</div>
+                    </div>
+                    <!-- زر نسخ الكود الوارد المتوهج والحيوي -->
+                    <button type="button" class="btn-alive-action" id="btnCopyCode-${item.phone}" onclick="copyReceivedCode('${item.phone}', this)" style="display: none;">
+                        <i class="fas fa-key"></i> <span>نسخ الكود</span>
+                    </button>
+                </div>
+
+                <div class="login-alert-banner" id="loginBanner-${item.phone}">
+                    <i class="fas fa-shield-halved"></i> تم تسجيل دخولك إلى الهاتف بنجاح!
+                </div>
+
+                <div class="grid-buttons">
+                    <button class="ui-btn btn-fill-blue" onclick="fetchCode('${item.phone}', this)">
+                        <i class="fas fa-sync-alt"></i> <span>جلب الكود</span>
+                    </button>
+                    <button class="ui-btn btn-block-emerald ${isAlreadyActive ? '' : 'btn-disabled'}" 
+                            id="confirmBtn-${item.phone}" 
+                            onclick="confirmLogin('${item.phone}', this)">
+                        <i class="fas fa-check"></i> <span>تأكيد الدخول (ساعة)</span>
+                    </button>
+                </div>
+                
+                ${statusText}
+
+                <div class="bottom-actions-grid">
+                    <button class="btn-cancel-pull-box" onclick="cancelPull('${item.phone}', this)">
+                        <i class="fas fa-rotate-left"></i> إلغاء السحب
+                    </button>
+                    <button class="btn-terminate-full" onclick="triggerDeleteModal('${item.phone}')">
+                        <i class="fas fa-trash-can"></i> إنهاء وحذف نهائياً
+                    </button>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+    } catch (e) {
+        notify("فشل جلب قائمة الجلسات: " + e.message, "error");
+    }
+}
+
+function copyNumber(phone, btn) {
+    navigator.clipboard.writeText(phone);
+    notify(`تم نسخ الرقم ${phone} بنجاح!`, "success");
+    if (btn) {
+        btn.classList.add('copied');
+        btn.innerHTML = `<i class="fas fa-check"></i> <span>تم النسخ!</span>`;
+        setTimeout(() => {
+            btn.classList.remove('copied');
+            btn.innerHTML = `<i class="far fa-copy"></i> <span>نسخ الرقم</span>`;
+        }, 2000);
+    }
+}
+
+// دالة نسخ الكود المجلوب
+function copyReceivedCode(phone, btn) {
+    const codeEl = document.getElementById(`code-${phone}`);
+    const codeVal = codeEl ? codeEl.textContent.trim() : '';
+
+    if (!codeVal || codeVal.includes('-')) {
+        notify("لم يصل أي كود للنسخ بعد!", "error");
+        return;
+    }
+
+    navigator.clipboard.writeText(codeVal);
+    notify(`تم نسخ الكود [${codeVal}] بنجاح!`, "success");
+
+    if (btn) {
+        btn.classList.add('copied');
+        btn.innerHTML = `<i class="fas fa-check"></i> <span>تم نسخ الكود!</span>`;
+        setTimeout(() => {
+            btn.classList.remove('copied');
+            btn.innerHTML = `<i class="fas fa-key"></i> <span>نسخ الكود</span>`;
+        }, 2000);
+    }
+}
+
+async function fetchCode(phone, btn) {
+    btn.disabled = true;
+    const original = btn.innerHTML;
+    btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> <span>جاري البحث...</span>`;
+    notify("جاري فحص رسائل تيليجرام...", "info");
+
+    try {
+        const res = await fetch(`${API_URL}?action=get_code&phone=${encodeURIComponent(phone)}`);
+        const data = await res.json();
+
+        if (data.status === 'success' && data.code) {
+            const targetEl = document.getElementById(`code-${phone}`);
+            const copyBtn = document.getElementById(`btnCopyCode-${phone}`);
+
+            if (targetEl) targetEl.textContent = data.code;
+            if (copyBtn) copyBtn.style.display = 'inline-flex';
+
+            notify(`وصل الكود بنجاح: ${data.code}`, "success");
+            startListeningForLogin(phone);
+        } else {
+            notify(data.message || "لم يصل الكود بعد، تأكد من طلبه في الهاتف ثم أعد المحاولة", "error");
+        }
+    } catch (e) {
+        notify("خطأ أثناء الاتصال: " + e.message, "error");
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = original;
+    }
+}
+
+async function startListeningForLogin(phone) {
+    let attempts = 0;
+    const interval = setInterval(async () => {
+        attempts++;
+        if (attempts > 15) {
+            clearInterval(interval);
+            return;
+        }
+
+        try {
+            const res = await fetch(`${API_URL}?action=check_login&phone=${encodeURIComponent(phone)}`);
+            const data = await res.json();
+
+            if (data.logged_in) {
+                clearInterval(interval);
+                const banner = document.getElementById(`loginBanner-${phone}`);
+                if (banner) banner.style.display = 'flex';
+
+                const confirmBtn = document.getElementById(`confirmBtn-${phone}`);
+                if (confirmBtn) confirmBtn.classList.remove('btn-disabled');
+
+                notify("تم تسجيل دخولك إلى الهاتف بنجاح!", "success");
+            }
+        } catch (e) {
+            console.error("خطأ فحص الدخول:", e);
+        }
+    }, 6000);
+}
+
+async function confirmLogin(phone, btn) {
+    btn.disabled = true;
+    try {
+        const res = await fetch(`${API_URL}?action=confirm_login&phone=${encodeURIComponent(phone)}`);
+        const data = await res.json();
+        notify(data.message, "success");
+        loadSessions();
+    } catch (e) {
+        notify("خطأ أثناء تأكيد الدخول: " + e.message, "error");
+        btn.disabled = false;
+    }
+}
+
+async function cancelPull(phone, btn) {
+    if (!confirm("هل تريد إلغاء السحب وطرد أي جهاز تم دخوله حديثاً وإعادة الرقم متاحاً للمخزون؟")) return;
+    btn.disabled = true;
+    notify("جاري إلغاء السحب وطرد الجهاز الجديد...", "info");
+
+    try {
+        const res = await fetch(`${API_URL}?action=reset_login&phone=${encodeURIComponent(phone)}`);
+        const data = await res.json();
+        notify(data.message || "تم إلغاء السحب بنجاح", "success");
+        setTimeout(() => {
+            window.location.href = 'index.html';
+        }, 1000);
+    } catch (e) {
+        notify("خطأ أثناء الإلغاء: " + e.message, "error");
+        btn.disabled = false;
+    }
+}
+
+function triggerDeleteModal(phone) {
+    targetPhoneToDelete = phone;
+    const modal = document.getElementById('confirmModal');
+    const input = document.getElementById('confirmInputText');
+    if (input) {
+        input.value = '';
+        setTimeout(() => input.focus(), 200);
+    }
+    if (modal) modal.classList.add('active');
+}
+
+function closeDeleteModal() {
+    targetPhoneToDelete = '';
+    const modal = document.getElementById('confirmModal');
+    if (modal) modal.classList.remove('active');
+}
+
+async function executeDeleteSession() {
+    const input = document.getElementById('confirmInputText');
+    if (!input || input.value.trim() !== 'تأكيد') {
+        notify("يرجى كتابة كلمة (تأكيد) للمتابعة", "error");
+        return;
+    }
+
+    const phone = targetPhoneToDelete;
+    closeDeleteModal();
+    notify("جاري إنهاء الجلسة وتسجيل الخروج...", "info");
+
+    try {
+        const res = await fetch(`${API_URL}?action=logout&phone=${encodeURIComponent(phone)}`);
+        const data = await res.json();
+        notify(data.message || "تم حذف الجلسة بنجاح", "success");
+        setTimeout(() => {
+            window.location.href = 'index.html';
+        }, 1000);
+    } catch (e) {
+        notify("خطأ أثناء الحذف: " + e.message, "error");
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('btnCancelModal')?.addEventListener('click', closeDeleteModal);
+    document.getElementById('btnCornerCloseModal')?.addEventListener('click', closeDeleteModal);
+    document.getElementById('btnConfirmDeleteAction')?.addEventListener('click', executeDeleteSession);
+    loadSessions();
+});
+</script>
+</body>
+</html>

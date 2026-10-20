@@ -1,0 +1,1119 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>التحكم الآلي بالجلسات | تيلي-مانجر برو</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css?v=38">
+    <style>
+        /* التبويبات كل 3 في سطر والزر السابع يفتح سطر جديد بمفرده */
+        .tabs-nav {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 25px;
+            padding: 10px 4px;
+        }
+
+        .tab-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1.5px solid var(--border-color);
+            color: var(--text-sub);
+            padding: 12px 8px;
+            border-radius: 16px;
+            font-weight: 800;
+            font-size: 13px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            outline: none;
+            transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .tab-btn:hover {
+            color: #fff;
+            transform: translateY(-4px);
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(139, 92, 246, 0.5);
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(135deg, #8b5cf6, #6366f1) !important;
+            color: #fff !important;
+            border-color: transparent !important;
+            transform: translateY(-8px) scale(1.04) !important;
+            box-shadow: 0 14px 28px rgba(99, 102, 241, 0.5), 0 0 15px rgba(139, 92, 246, 0.6) !important;
+            z-index: 10;
+        }
+
+        /* إخفاء البطاقة مبدئياً لحين اختيار مهمة */
+        .automation-main-card {
+            position: relative;
+            min-height: 200px;
+            display: none;
+        }
+
+        .automation-main-card.show-card {
+            display: block;
+            animation: bounceInPane 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+
+        .content-pane {
+            display: none;
+        }
+
+        .content-pane.active {
+            display: block;
+            animation: bounceInPane 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+
+        @keyframes bounceInPane {
+            0% {
+                opacity: 0;
+                transform: translateY(25px) scale(0.96);
+            }
+            70% {
+                transform: translateY(-5px) scale(1.01);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .session-selector-box {
+            background: rgba(0, 0, 0, 0.25);
+            border: 1.5px solid var(--border-color);
+            border-radius: 14px;
+            padding: 14px;
+            max-height: 180px;
+            overflow-y: auto;
+            display: none;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .session-selector-box.show {
+            display: flex;
+            animation: bounceInPane 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .check-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 12px;
+            background: var(--card-bg);
+            border-radius: 10px;
+            font-size: 13.5px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .check-item:hover {
+            transform: translateX(-3px);
+        }
+
+        .check-item input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #8b5cf6;
+            cursor: pointer;
+        }
+
+        .toggle-selector-btn {
+            background: transparent;
+            border: 1.5px dashed var(--border-color);
+            color: #38bdf8;
+            padding: 8px 14px;
+            border-radius: 12px;
+            font-weight: 800;
+            font-size: 13px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 8px;
+            transition: 0.25s;
+        }
+
+        .toggle-selector-btn:hover {
+            transform: translateY(-2px);
+            border-color: #38bdf8;
+        }
+
+        .terminal-box {
+            background: #050811;
+            border: 1.5px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 16px;
+            font-family: monospace;
+            font-size: 13px;
+            min-height: 140px;
+            max-height: 250px;
+            overflow-y: auto;
+            direction: ltr !important;
+            text-align: left;
+            color: #10b981;
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.5);
+        }
+        .log-entry { margin-bottom: 6px; line-height: 1.5; }
+        .log-entry.info { color: #38bdf8; }
+        .log-entry.error { color: #ef4444; }
+        .log-entry.warn { color: #f59e0b; }
+        .log-entry.success { color: #10b981; }
+
+        /* نافذة طلب كلمة المرور لقسم 2FA */
+        .pwd-lock-modal {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.82);
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 99999;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .pwd-lock-modal.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .pwd-lock-box {
+            background: var(--card-bg, #0f172a);
+            border: 1.5px solid rgba(139, 92, 246, 0.5);
+            border-radius: 22px;
+            padding: 26px 22px;
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+            box-shadow: 0 16px 45px rgba(0,0,0,0.65), 0 0 25px rgba(139, 92, 246, 0.25);
+            transform: scale(0.92);
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .pwd-lock-modal.active .pwd-lock-box {
+            transform: scale(1);
+        }
+        .pwd-lock-box input {
+            width: 100%;
+            padding: 12px;
+            border-radius: 14px;
+            border: 1.5px solid rgba(255, 255, 255, 0.2);
+            background: rgba(0, 0, 0, 0.45);
+            color: #fff;
+            text-align: center;
+            font-size: 16px;
+            font-weight: 800;
+            margin: 16px 0;
+            outline: none;
+            letter-spacing: 2px;
+        }
+        .pwd-lock-box input:focus {
+            border-color: #8b5cf6;
+            box-shadow: 0 0 16px rgba(139, 92, 246, 0.5);
+        }
+
+        /* كروت كلمات السر الحالية */
+        .pass-card-item {
+            background: rgba(0, 0, 0, 0.35);
+            border: 1.5px solid var(--border-color);
+            border-radius: 16px;
+            padding: 14px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 10px;
+            transition: all 0.25s ease;
+        }
+        .pass-card-item:hover {
+            border-color: rgba(56, 189, 248, 0.5);
+            transform: translateY(-2px);
+        }
+        .pass-tag-val {
+            font-family: monospace;
+            font-size: 15px;
+            font-weight: 900;
+            color: #38bdf8;
+            background: rgba(56, 189, 248, 0.12);
+            border: 1px solid rgba(56, 189, 248, 0.35);
+            padding: 3px 10px;
+            border-radius: 8px;
+            direction: ltr !important;
+            display: inline-block;
+        }
+        .pass-tag-empty {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-sub);
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px dashed rgba(255, 255, 255, 0.2);
+            padding: 3px 10px;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+
+<div id="toast-zone"></div>
+
+<!-- نافذة إدخال كلمة سر المشرف لفتح قسم 2FA -->
+<div class="pwd-lock-modal" id="passwordsLockModal">
+    <div class="pwd-lock-box">
+        <i class="fas fa-user-shield" style="font-size: 40px; color: #8b5cf6; margin-bottom: 8px; text-shadow: 0 0 15px rgba(139, 92, 246, 0.6);"></i>
+        <h3 style="color: #fff; font-size: 19px; font-weight: 900; margin-bottom: 6px;">قسم كلمات سر الحسابات</h3>
+        <p style="font-size: 13px; color: var(--text-sub); line-height: 1.5;">يرجى إدخال كلمة مرور الحماية لفك القفل وعرض بيانات التحقق بخطوتين:</p>
+        
+        <input type="password" id="adminLockInput" placeholder="•••••••••">
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <button type="button" class="ui-btn btn-theme" style="width:100%; padding:10px;" id="btnCancelLockModal">
+                <span>إلغاء</span>
+            </button>
+            <button type="button" class="ui-btn btn-fill-blue" style="width:100%; padding:10px;" id="btnVerifyLockAction">
+                <i class="fas fa-unlock"></i> <span>دخول</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="app-shell">
+    <div class="action-bar">
+        <a href="index.html" class="btn-theme" style="text-decoration:none;" title="الرجوع للرئيسية">
+            <i class="fas fa-arrow-right"></i>
+        </a>
+        <div class="stock-indicator">
+            <i class="fas fa-robot" style="color: #8b5cf6;"></i>
+            <span>التحكم الآلي الموسّع</span>
+        </div>
+    </div>
+
+    <!-- الترويسة -->
+    <div class="header-panel">
+        <div class="avatar-holder">
+            <img src="bg2.jpg" alt="Logo" class="custom-avatar-img">
+        </div>
+        <div class="panel-content">
+            <h1>غرفة العمليات والأتمتة</h1>
+            <div class="author-badge"><i class="fas fa-microchip"></i> السفاح الشمالي - التحكم المتزامن</div>
+            <p>اختر المهمة المطلوبة من الأزرار بالأسفل لتنفيذها على الحسابات</p>
+        </div>
+    </div>
+
+    <!-- أزرار التبويبات (كل 3 في سطر والزر السابع يفتح سطر جديد بمفرده) -->
+    <div class="tabs-nav">
+        <button type="button" class="tab-btn" data-target="namePane">
+            <i class="fas fa-id-card"></i> <span>تغيير الاسم</span>
+        </button>
+        <button type="button" class="tab-btn" data-target="photoPane">
+            <i class="fas fa-camera"></i> <span>تغيير الصورة</span>
+        </button>
+        <button type="button" class="tab-btn" data-target="twoFaPane">
+            <i class="fas fa-lock"></i> <span>تفعيل 2FA</span>
+        </button>
+        <button type="button" class="tab-btn" data-target="removeTwoFaPane">
+            <i class="fas fa-unlock"></i> <span>حذف 2FA</span>
+        </button>
+        <button type="button" class="tab-btn" data-target="botPane">
+            <i class="fas fa-share-nodes"></i> <span>إحالات البوت</span>
+        </button>
+        <button type="button" class="tab-btn" id="btnOpenPasswordsPane">
+            <i class="fas fa-key"></i> <span>كلمات السر (2FA)</span>
+        </button>
+        <button type="button" class="tab-btn" data-target="joinChannelPane">
+            <i class="fas fa-bullhorn"></i> <span>اشتراك بقناة</span>
+        </button>
+    </div>
+
+    <!-- بطاقة المحتوى الارتدادية -->
+    <div class="dash-card automation-main-card" id="automationMainCard">
+        
+        <!-- 1) تبويب الأسماء -->
+        <div id="namePane" class="content-pane">
+            <div class="dash-card-header">
+                <h2 class="step-title"><span class="badge-index"><i class="fas fa-user-pen"></i></span> تعديل اسم الحسابات</h2>
+            </div>
+
+            <div class="actions-2col" style="margin-bottom: 12px;">
+                <div>
+                    <label class="input-caption">الاسم الأول</label>
+                    <div class="input-wrapper">
+                        <input type="text" id="firstNameInput" placeholder="مثال: علي">
+                    </div>
+                </div>
+                <div>
+                    <label class="input-caption">اسم العائلة (اختياري)</label>
+                    <div class="input-wrapper">
+                        <input type="text" id="lastNameInput" placeholder="مثال: الصالح">
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-bottom: 14px;">
+                <button type="button" class="toggle-selector-btn" id="toggleNameTargetBtn">
+                    <i class="fas fa-list-check"></i> <span id="nameTargetLabel">تطبيق على جميع الجلسات (اضغط للتحديد اليدوي)</span>
+                </button>
+                <div class="session-selector-box" id="nameSessionsBox"></div>
+            </div>
+
+            <button type="button" class="ui-btn btn-fill-blue" style="width:100%;" id="btnExecuteChangeName">
+                <i class="fas fa-paper-plane"></i> <span>بدء تغيير الأسماء</span>
+            </button>
+        </div>
+
+        <!-- 2) تبويب الصورة -->
+        <div id="photoPane" class="content-pane">
+            <div class="dash-card-header">
+                <h2 class="step-title"><span class="badge-index"><i class="fas fa-image"></i></span> تغيير الصورة الشخصية</h2>
+            </div>
+
+            <label class="input-caption">اختر الصورة من جهازك (JPG / PNG)</label>
+            <div class="input-wrapper" style="padding: 10px;">
+                <input type="file" id="profilePhotoInput" accept="image/*">
+            </div>
+
+            <div style="margin-bottom: 14px;">
+                <button type="button" class="toggle-selector-btn" id="togglePhotoTargetBtn">
+                    <i class="fas fa-list-check"></i> <span id="photoTargetLabel">تطبيق على جميع الجلسات (اضغط للتحديد اليدوي)</span>
+                </button>
+                <div class="session-selector-box" id="photoSessionsBox"></div>
+            </div>
+
+            <button type="button" class="ui-btn btn-block-emerald" style="width:100%;" id="btnExecuteChangePhoto">
+                <i class="fas fa-upload"></i> <span>بدء تحديث الصور</span>
+            </button>
+        </div>
+
+        <!-- 3) تبويب تفعيل التحقق بخطوتين -->
+        <div id="twoFaPane" class="content-pane">
+            <div class="dash-card-header">
+                <h2 class="step-title"><span class="badge-index"><i class="fas fa-shield-halved"></i></span> تفعيل التحقق بخطوتين (2FA)</h2>
+            </div>
+
+            <div class="actions-2col" style="margin-bottom: 12px;">
+                <div>
+                    <label class="input-caption">كلمة السر الجديدة</label>
+                    <div class="input-wrapper">
+                        <input type="text" id="twoFaPasswordInput" placeholder="اكتب كلمة السر هنا">
+                        <i class="fas fa-key input-icon-right"></i>
+                    </div>
+                </div>
+                <div>
+                    <label class="input-caption">تلميح كلمة السر (اختياري)</label>
+                    <div class="input-wrapper">
+                        <input type="text" id="twoFaHintInput" placeholder="مثال: رقمي المفضل">
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-bottom: 14px;">
+                <button type="button" class="toggle-selector-btn" id="toggleTwoFaTargetBtn">
+                    <i class="fas fa-list-check"></i> <span id="twoFaTargetLabel">تطبيق على جميع الجلسات (اضغط للتحديد اليدوي)</span>
+                </button>
+                <div class="session-selector-box" id="twoFaSessionsBox"></div>
+            </div>
+
+            <button type="button" class="ui-btn btn-auto-purple" style="width:100%;" id="btnExecuteSet2FA">
+                <i class="fas fa-lock"></i> <span>تأمين وتفعيل التحقق بخطوتين</span>
+            </button>
+        </div>
+
+        <!-- 4) تبويب حذف التحقق بخطوتين -->
+        <div id="removeTwoFaPane" class="content-pane">
+            <div class="dash-card-header">
+                <h2 class="step-title"><span class="badge-index" style="background: linear-gradient(135deg, #dc2626, #ef4444);"><i class="fas fa-unlock"></i></span> حذف التحقق بخطوتين (إلغاء 2FA)</h2>
+            </div>
+
+            <label class="input-caption">كلمة السر الحالية للحسابات (المطلوب إزالتها)</label>
+            <div class="input-wrapper">
+                <input type="text" id="removeTwoFaPasswordInput" placeholder="اكتب كلمة السر الحالية لإزالتها">
+                <i class="fas fa-key input-icon-right"></i>
+            </div>
+
+            <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 12px; padding: 12px; margin-bottom: 14px; font-size: 13px; color: var(--text-sub); line-height: 1.6;">
+                <i class="fas fa-triangle-exclamation" style="color: #ef4444;"></i>
+                <strong>تنبيه الإلغاء:</strong> سيتم فك كلمة المرور وإرجاع الحسابات بدون تحقق بخطوتين (يمكن ترك الحقل فارغاً إذا لم تكن متأكداً).
+            </div>
+
+            <div style="margin-bottom: 14px;">
+                <button type="button" class="toggle-selector-btn" id="toggleRemoveTwoFaTargetBtn">
+                    <i class="fas fa-list-check"></i> <span id="removeTwoFaTargetLabel">تطبيق على جميع الجلسات (اضغط للتحديد اليدوي)</span>
+                </button>
+                <div class="session-selector-box" id="removeTwoFaSessionsBox"></div>
+            </div>
+
+            <button type="button" class="ui-btn btn-danger-ghost" style="width:100%;" id="btnExecuteRemove2FA">
+                <i class="fas fa-trash-can"></i> <span>بدء حذف التحقق بخطوتين</span>
+            </button>
+        </div>
+
+        <!-- 5) تبويب البوت -->
+        <div id="botPane" class="content-pane">
+            <div class="dash-card-header">
+                <h2 class="step-title"><span class="badge-index"><i class="fas fa-bolt"></i></span> رشق إحالات البوت التلقائي</h2>
+            </div>
+
+            <label class="input-caption">رابط إحالة البوت (أو المعرف مع كود start)</label>
+            <div class="input-wrapper">
+                <input type="text" id="botReferralInput" placeholder="https://t.me/BotUsername?start=12345678" dir="ltr">
+                <i class="fas fa-robot input-icon-right"></i>
+            </div>
+
+            <div style="background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 12px; padding: 12px; margin-bottom: 14px; font-size: 13px; color: var(--text-sub); line-height: 1.6;">
+                <i class="fas fa-info-circle" style="color: #38bdf8;"></i>
+                <strong>النظام التلقائي:</strong> سيقوم الحساب بالدخول للرابط، وفحص الردود، والاشتراك بالقنوات الإجبارية المستخرجة ذاتياً ثم الضغط على زر التحقق.
+            </div>
+
+            <div style="margin-bottom: 14px;">
+                <button type="button" class="toggle-selector-btn" id="toggleBotTargetBtn">
+                    <i class="fas fa-list-check"></i> <span id="botTargetLabel">تطبيق على جميع الجلسات (اضغط للتحديد اليدوي)</span>
+                </button>
+                <div class="session-selector-box" id="botSessionsBox"></div>
+            </div>
+
+            <button type="button" class="ui-btn btn-outline-amber" style="width:100%;" id="btnExecuteBotReferral">
+                <i class="fas fa-play"></i> <span>بدء رشق الإحالات</span>
+            </button>
+        </div>
+
+        <!-- 6) تبويب كلمات السر الحالية للحسابات -->
+        <div id="viewPasswordsPane" class="content-pane">
+            <div class="dash-card-header" style="justify-content: space-between;">
+                <h2 class="step-title"><span class="badge-index"><i class="fas fa-key"></i></span> كلمات سر الحسابات الحالية</h2>
+                <button type="button" class="btn-refresh" id="btnRefreshPasswordsList" title="تحديث كلمات السر">
+                    <i class="fas fa-rotate"></i>
+                </button>
+            </div>
+
+            <p style="font-size: 13px; color: var(--text-sub); margin-bottom: 16px;">
+                قائمة كلمات مرور التحقق بخطوتين (2FA) المسجلة. يمكنك نسخ كلمة السر، أو تعديلها يدوياً لحساباتك السابقة عبر زر القلم (✏️):
+            </p>
+
+            <div id="passwordsContainerList" style="max-height: 280px; overflow-y: auto;"></div>
+        </div>
+
+        <!-- 7) تبويب الاشتراك بقناة -->
+        <div id="joinChannelPane" class="content-pane">
+            <div class="dash-card-header">
+                <h2 class="step-title"><span class="badge-index" style="background: linear-gradient(135deg, #059669, #10b981);"><i class="fas fa-bullhorn"></i></span> الاشتراك التلقائي في قناة / قروب</h2>
+            </div>
+
+            <label class="input-caption">رابط القناة أو المعرف (عام أو خاص)</label>
+            <div class="input-wrapper">
+                <input type="text" id="channelJoinInput" placeholder="مثال: @username أو https://t.me/channel" dir="ltr">
+                <i class="fas fa-paper-plane input-icon-right"></i>
+            </div>
+
+            <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 12px; padding: 12px; margin-bottom: 14px; font-size: 13px; color: var(--text-sub); line-height: 1.6;">
+                <i class="fas fa-circle-check" style="color: #10b981;"></i>
+                <strong>انضمام فوري:</strong> سيتم إدخال الحسابات المحددة بالترتيب وبفارق زمني أماني تلقائي لتجنب قيود تيليجرام.
+            </div>
+
+            <div style="margin-bottom: 14px;">
+                <button type="button" class="toggle-selector-btn" id="toggleChannelTargetBtn">
+                    <i class="fas fa-list-check"></i> <span id="channelTargetLabel">تطبيق على جميع الجلسات (اضغط للتحديد اليدوي)</span>
+                </button>
+                <div class="session-selector-box" id="channelSessionsBox"></div>
+            </div>
+
+            <button type="button" class="ui-btn btn-block-emerald" style="width:100%;" id="btnExecuteJoinChannel">
+                <i class="fas fa-user-plus"></i> <span>بدء الانضمام للقناة</span>
+            </button>
+        </div>
+
+    </div>
+
+    <!-- شاشة السجل الحي -->
+    <div class="dash-card">
+        <div class="dash-card-header">
+            <h2 class="step-title"><span class="badge-index"><i class="fas fa-terminal"></i></span> السجل المباشر للعمليات</h2>
+            <span class="btn-wipe" onclick="clearLogs()"><i class="fas fa-eraser"></i> مسح</span>
+        </div>
+        <div class="terminal-box" id="terminalLogs">
+            <div class="log-entry info">[System] Ready for automated tasks. Select task and click execute...</div>
+        </div>
+    </div>
+</div>
+
+<script>
+const API_URL = 'api.php';
+let allSessions = [];
+let isCustomNameTarget = false;
+let isCustomPhotoTarget = false;
+let isCustomTwoFaTarget = false;
+let isCustomRemoveTwoFaTarget = false;
+let isCustomBotTarget = false;
+let isCustomChannelTarget = false;
+let verifiedAdminPass = '';
+
+function notify(text, type = 'info') {
+    const box = document.getElementById('toast-zone');
+    if (!box) return;
+    const toast = document.createElement('div');
+    toast.className = `toast-msg toast-${type}`;
+    let icon = type === 'success' ? 'fa-check-circle' : (type === 'error' ? 'fa-circle-exclamation' : 'fa-info-circle');
+    toast.innerHTML = `<i class="fas ${icon}"></i> <span>${text}</span>`;
+    box.appendChild(toast);
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(-10px)';
+        toast.style.transition = '0.3s';
+        setTimeout(() => toast.remove(), 3500);
+    }, 3500);
+}
+
+function setBtnLoading(btn, isLoading, label = 'جارٍ المعالجة...') {
+    if (!btn) return;
+    if (isLoading) {
+        btn.disabled = true;
+        btn.dataset.original = btn.innerHTML;
+        btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> <span>${label}</span>`;
+    } else {
+        btn.disabled = false;
+        if (btn.dataset.original) btn.innerHTML = btn.dataset.original;
+    }
+}
+
+function logToTerminal(msg, type = 'info') {
+    const terminal = document.getElementById('terminalLogs');
+    const entry = document.createElement('div');
+    entry.className = `log-entry ${type}`;
+    const time = new Date().toLocaleTimeString();
+    entry.textContent = `[${time}] ${msg}`;
+    terminal.appendChild(entry);
+    terminal.scrollTop = terminal.scrollHeight;
+}
+
+function clearLogs() {
+    document.getElementById('terminalLogs').innerHTML = '<div class="log-entry info">[System] Logs cleared.</div>';
+}
+
+function initTabs() {
+    const tabBtns = document.querySelectorAll('.tabs-nav .tab-btn:not(#btnOpenPasswordsPane)');
+    const panes = document.querySelectorAll('.content-pane');
+    const mainCard = document.getElementById('automationMainCard');
+
+    tabBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const targetId = btn.getAttribute('data-target');
+
+            if (mainCard) mainCard.classList.add('show-card');
+
+            document.querySelectorAll('.tabs-nav .tab-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            panes.forEach(pane => {
+                if (pane.id === targetId) {
+                    pane.classList.remove('active');
+                    void pane.offsetWidth;
+                    pane.classList.add('active');
+                } else {
+                    pane.classList.remove('active');
+                }
+            });
+        });
+    });
+}
+
+// نافذة القفل لقسم كلمات السر
+const pwdModal = document.getElementById('passwordsLockModal');
+const adminInput = document.getElementById('adminLockInput');
+
+document.getElementById('btnOpenPasswordsPane').addEventListener('click', () => {
+    if (verifiedAdminPass === 'aass12345') {
+        activatePasswordsPane();
+    } else {
+        adminInput.value = '';
+        pwdModal.classList.add('active');
+        setTimeout(() => adminInput.focus(), 250);
+    }
+});
+
+document.getElementById('btnCancelLockModal').addEventListener('click', () => {
+    pwdModal.classList.remove('active');
+});
+
+document.getElementById('btnVerifyLockAction').addEventListener('click', verifyAdminPass);
+adminInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') verifyAdminPass();
+});
+
+function verifyAdminPass() {
+    const entered = adminInput.value.trim();
+    if (entered === 'aass12345') {
+        verifiedAdminPass = entered;
+        pwdModal.classList.remove('active');
+        notify("تم التحقق بنجاح! مرحباً بك", "success");
+        activatePasswordsPane();
+    } else {
+        notify("خطأ: كلمة المرور غير صحيحة!", "error");
+        adminInput.value = '';
+        adminInput.focus();
+    }
+}
+
+function activatePasswordsPane() {
+    const mainCard = document.getElementById('automationMainCard');
+    if (mainCard) mainCard.classList.add('show-card');
+
+    document.querySelectorAll('.tabs-nav .tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('btnOpenPasswordsPane').classList.add('active');
+
+    document.querySelectorAll('.content-pane').forEach(p => p.classList.remove('active'));
+    const pane = document.getElementById('viewPasswordsPane');
+    pane.classList.remove('active');
+    void pane.offsetWidth;
+    pane.classList.add('active');
+
+    load2FaPasswords();
+}
+
+// جلب كلمات السر الحالية
+async function load2FaPasswords() {
+    const container = document.getElementById('passwordsContainerList');
+    container.innerHTML = `<div style="text-align:center; padding:15px; color:var(--text-sub);"><i class="fas fa-spinner fa-spin"></i> جارٍ جلب كلمات السر...</div>`;
+
+    try {
+        const res = await fetch(`${API_URL}?action=get_2fa_passwords&admin_pass=${encodeURIComponent(verifiedAdminPass)}`);
+        const result = await res.json();
+
+        if (result.status === 'success') {
+            const list = result.data || [];
+            if (list.length === 0) {
+                container.innerHTML = `<div style="text-align:center; padding:14px; color:var(--text-sub);">لا توجد جلسات مسجلة بالمخزون حالياً</div>`;
+                return;
+            }
+
+            container.innerHTML = '';
+            list.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'pass-card-item';
+
+                const sName = item.session_name || 'السفاح الشمالي';
+                const tgName = item.telegram_name ? `<span style="font-size:11px; color:#38bdf8;">(${item.telegram_name})</span>` : '';
+                const hasPass = item.two_fa_password && item.two_fa_password.trim() !== '';
+
+                card.innerHTML = `
+                    <div style="display:flex; flex-direction:column; gap:4px; text-align:right;">
+                        <div style="display:flex; align-items:center; gap:6px;">
+                            <span style="font-size:11.5px; color:#c084fc; font-weight:800;"><i class="fas fa-crown"></i> ${sName}</span>
+                            ${tgName}
+                        </div>
+                        <div style="font-size:14px; font-weight:800; color:#fff;" dir="ltr">${item.phone}</div>
+                    </div>
+
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        ${hasPass ? `
+                            <span class="pass-tag-val">${item.two_fa_password}</span>
+                            <button type="button" class="btn-mini-check" onclick="copyPasswordDirect('${item.two_fa_password}', this)" title="نسخ كلمة السر" style="font-size:13px; padding:4px 8px;">
+                                <i class="far fa-copy"></i>
+                            </button>
+                        ` : `
+                            <span class="pass-tag-empty">بدون كلمة سر</span>
+                        `}
+                        <button type="button" class="btn-mini-check" onclick="editPasswordDirect('${item.phone}', '${hasPass ? item.two_fa_password : ''}')" title="تعديل/إدخال كلمة السر" style="font-size:12px; color:#a855f7;">
+                            <i class="fas fa-pen"></i>
+                        </button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        } else {
+            container.innerHTML = `<div style="text-align:center; padding:12px; color:#ef4444;">${result.message || 'فشل جلب البيانات'}</div>`;
+        }
+    } catch (e) {
+        container.innerHTML = `<div style="text-align:center; padding:12px; color:#ef4444;">خطأ اتصال: ${e.message}</div>`;
+    }
+}
+
+document.getElementById('btnRefreshPasswordsList').addEventListener('click', () => {
+    load2FaPasswords();
+    notify("تم تحديث القائمة", "info");
+});
+
+function copyPasswordDirect(pass, btn) {
+    navigator.clipboard.writeText(pass);
+    notify(`تم نسخ كلمة السر [${pass}] بنجاح!`, "success");
+    if (btn) {
+        btn.innerHTML = `<i class="fas fa-check" style="color:#10b981;"></i>`;
+        setTimeout(() => btn.innerHTML = `<i class="far fa-copy"></i>`, 1800);
+    }
+}
+
+async function editPasswordDirect(phone, oldVal) {
+    const newVal = prompt(`اكتب كلمة سر التحقق بخطوتين (2FA) الحالية للرقم ${phone}:`, oldVal);
+    if (newVal === null) return;
+
+    try {
+        const res = await fetch(`${API_URL}?action=update_single_2fa_password&phone=${encodeURIComponent(phone)}&password=${encodeURIComponent(newVal.trim())}&admin_pass=${encodeURIComponent(verifiedAdminPass)}`);
+        const data = await res.json();
+        if (data.status === 'success') {
+            notify(data.message, "success");
+            load2FaPasswords();
+        } else {
+            notify(data.message || "فشل التحديث", "error");
+        }
+    } catch(e) {
+        notify("خطأ في الاتصال: " + e.message, "error");
+    }
+}
+
+async function loadSessions() {
+    try {
+        const res = await fetch(`${API_URL}?action=list_numbers`);
+        allSessions = await res.json();
+        renderSelectionBoxes();
+    } catch(e) {
+        logToTerminal("Failed to fetch sessions: " + e.message, 'error');
+    }
+}
+
+function renderSelectionBoxes() {
+    const boxes = ['nameSessionsBox', 'photoSessionsBox', 'twoFaSessionsBox', 'removeTwoFaSessionsBox', 'botSessionsBox', 'channelSessionsBox'];
+    boxes.forEach(boxId => {
+        const container = document.getElementById(boxId);
+        if (!container) return;
+        container.innerHTML = '';
+        if (!allSessions || allSessions.length === 0) {
+            container.innerHTML = '<div style="color:var(--text-sub); text-align:center;">لا توجد جلسات بالمخزون</div>';
+            return;
+        }
+        allSessions.forEach(item => {
+            const div = document.createElement('label');
+            div.className = 'check-item';
+            div.innerHTML = `
+                <span dir="ltr">${item.phone}</span>
+                <input type="checkbox" value="${item.phone}" class="${boxId}-chk">
+            `;
+            container.appendChild(div);
+        });
+    });
+}
+
+function setupTargetToggle(btnId, boxId, labelId, stateVarSetter) {
+    document.getElementById(btnId).addEventListener('click', () => {
+        const box = document.getElementById(boxId);
+        const label = document.getElementById(labelId);
+        const isShown = box.classList.toggle('show');
+        stateVarSetter(isShown);
+        if (isShown) {
+            label.textContent = "وضع التحديد اليدوي نشط (اختر من القائمة أدناه)";
+        } else {
+            label.textContent = "تطبيق على جميع الجلسات (اضغط للتحديد اليدوي)";
+        }
+    });
+}
+
+setupTargetToggle('toggleNameTargetBtn', 'nameSessionsBox', 'nameTargetLabel', (v) => isCustomNameTarget = v);
+setupTargetToggle('togglePhotoTargetBtn', 'photoSessionsBox', 'photoTargetLabel', (v) => isCustomPhotoTarget = v);
+setupTargetToggle('toggleTwoFaTargetBtn', 'twoFaSessionsBox', 'twoFaTargetLabel', (v) => isCustomTwoFaTarget = v);
+setupTargetToggle('toggleRemoveTwoFaTargetBtn', 'removeTwoFaSessionsBox', 'removeTwoFaTargetLabel', (v) => isCustomRemoveTwoFaTarget = v);
+setupTargetToggle('toggleBotTargetBtn', 'botSessionsBox', 'botTargetLabel', (v) => isCustomBotTarget = v);
+setupTargetToggle('toggleChannelTargetBtn', 'channelSessionsBox', 'channelTargetLabel', (v) => isCustomChannelTarget = v);
+
+function getSelectedPhones(boxClass, isCustom) {
+    if (!isCustom) {
+        return allSessions.map(s => s.phone);
+    }
+    const checked = Array.from(document.querySelectorAll(`.${boxClass}:checked`)).map(el => el.value);
+    return checked;
+}
+
+// 1. تغيير الاسم
+document.getElementById('btnExecuteChangeName').addEventListener('click', async (e) => {
+    const first = document.getElementById('firstNameInput').value.trim();
+    const last = document.getElementById('lastNameInput').value.trim();
+    const targets = getSelectedPhones('nameSessionsBox-chk', isCustomNameTarget);
+    const btn = e.currentTarget;
+
+    if (!first) {
+        notify("يرجى كتابة الاسم الأول على الأقل", "error");
+        return;
+    }
+    if (targets.length === 0) {
+        notify("لم يتم تحديد أي جلسة للتعديل!", "error");
+        return;
+    }
+
+    setBtnLoading(btn, true, "جاري تغيير الأسماء...");
+    logToTerminal(`بدء تغيير الاسم إلى [${first} ${last}] لـ ${targets.length} جلسة...`, 'info');
+    notify(`بدء تغيير الاسم لـ ${targets.length} حساب...`, "info");
+
+    try {
+        for (const phone of targets) {
+            logToTerminal(`جاري تعديل اسم الحساب: ${phone}...`, 'info');
+            try {
+                const res = await fetch(`${API_URL}?action=change_name&phone=${encodeURIComponent(phone)}&first_name=${encodeURIComponent(first)}&last_name=${encodeURIComponent(last)}`);
+                const data = await res.json();
+                if (data.status === 'success') {
+                    logToTerminal(`[${phone}] ${data.message}`, 'success');
+                } else {
+                    logToTerminal(`[${phone}] فشل: ${data.message}`, 'error');
+                }
+            } catch(err) {
+                logToTerminal(`[${phone}] خطأ اتصال: ${err.message}`, 'error');
+            }
+        }
+        notify("اكتملت عملية تغيير الأسماء!", "success");
+    } finally {
+        setBtnLoading(btn, false);
+    }
+});
+
+// 2. تغيير الصورة
+document.getElementById('btnExecuteChangePhoto').addEventListener('click', async (e) => {
+    const fileInput = document.getElementById('profilePhotoInput');
+    const targets = getSelectedPhones('photoSessionsBox-chk', isCustomPhotoTarget);
+    const btn = e.currentTarget;
+
+    if (!fileInput.files || fileInput.files.length === 0) {
+        notify("يرجى اختيار صورة أولاً", "error");
+        return;
+    }
+    if (targets.length === 0) {
+        notify("لم يتم تحديد أي جلسة!", "error");
+        return;
+    }
+
+    setBtnLoading(btn, true, "جاري رفع الصورة وتطبيقها...");
+    const file = fileInput.files[0];
+    const formData = new FormData();
+    formData.append('photo', file);
+
+    logToTerminal(`رفع الصورة المحددة إلى السيرفر...`, 'info');
+    notify("جاري رفع الصورة وتطبيقها...", "info");
+
+    try {
+        const uploadRes = await fetch(`${API_URL}?action=upload_temp_photo`, { method: 'POST', body: formData });
+        const uploadData = await uploadRes.json();
+        
+        if (uploadData.status !== 'success') {
+            logToTerminal("فشل رفع الصورة: " + uploadData.message, 'error');
+            setBtnLoading(btn, false);
+            return;
+        }
+
+        const photoPath = uploadData.file_path;
+        logToTerminal(`تم رفع الصورة. بدء تعيينها لـ ${targets.length} حساب...`, 'info');
+
+        for (const phone of targets) {
+            logToTerminal(`تعيين الصورة للحساب: ${phone}...`, 'info');
+            try {
+                const res = await fetch(`${API_URL}?action=change_photo&phone=${encodeURIComponent(phone)}&photo_path=${encodeURIComponent(photoPath)}`);
+                const data = await res.json();
+                if (data.status === 'success') {
+                    logToTerminal(`[${phone}] تم تغيير الصورة الشخصية بنجاح ✅`, 'success');
+                } else {
+                    logToTerminal(`[${phone}] فشل: ${data.message}`, 'error');
+                }
+            } catch(err) {
+                logToTerminal(`[${phone}] خطأ: ${err.message}`, 'error');
+            }
+        }
+        notify("اكتمل تعيين الصور لجميع الحسابات!", "success");
+    } catch(err) {
+        logToTerminal("خطأ أثناء معالجة الصور: " + err.message, 'error');
+    } finally {
+        setBtnLoading(btn, false);
+    }
+});
+
+// 3. تفعيل التحقق بخطوتين
+document.getElementById('btnExecuteSet2FA').addEventListener('click', async (e) => {
+    const password = document.getElementById('twoFaPasswordInput').value.trim();
+    const hint = document.getElementById('twoFaHintInput').value.trim();
+    const targets = getSelectedPhones('twoFaSessionsBox-chk', isCustomTwoFaTarget);
+    const btn = e.currentTarget;
+
+    if (!password) {
+        notify("يرجى كتابة كلمة السر للتحقق بخطوتين", "error");
+        return;
+    }
+    if (targets.length === 0) {
+        notify("لم يتم تحديد أي جلسة!", "error");
+        return;
+    }
+
+    setBtnLoading(btn, true, "جاري تفعيل التحقق بخطوتين...");
+    logToTerminal(`بدء تفعيل التحقق بخطوتين لـ ${targets.length} حساب بكلمة السر: [${password}]...`, 'warn');
+    notify(`بدء تفعيل التحقق بخطوتين لـ ${targets.length} حساب...`, "info");
+
+    try {
+        for (const phone of targets) {
+            logToTerminal(`تعيين كلمة سر التحقق بخطوتين للحساب: ${phone}...`, 'info');
+            try {
+                const res = await fetch(`${API_URL}?action=set_2fa&phone=${encodeURIComponent(phone)}&password=${encodeURIComponent(password)}&hint=${encodeURIComponent(hint)}`);
+                const data = await res.json();
+                if (data.status === 'success') {
+                    logToTerminal(`[${phone}] تم تأمين الحساب بكلمة السر بنجاح 🔐`, 'success');
+                } else {
+                    logToTerminal(`[${phone}] فشل: ${data.message}`, 'error');
+                }
+            } catch(err) {
+                logToTerminal(`[${phone}] خطأ اتصال: ${err.message}`, 'error');
+            }
+        }
+        notify("اكتمل تفعيل التحقق بخطوتين لجميع الحسابات!", "success");
+    } finally {
+        setBtnLoading(btn, false);
+    }
+});
+
+// 4. حذف التحقق بخطوتين
+document.getElementById('btnExecuteRemove2FA').addEventListener('click', async (e) => {
+    const currentPassword = document.getElementById('removeTwoFaPasswordInput').value.trim();
+    const targets = getSelectedPhones('removeTwoFaSessionsBox-chk', isCustomRemoveTwoFaTarget);
+    const btn = e.currentTarget;
+
+    if (targets.length === 0) {
+        notify("لم يتم تحديد أي جلسة لإلغاء التحقق!", "error");
+        return;
+    }
+
+    setBtnLoading(btn, true, "جاري حذف التحقق بخطوتين...");
+    logToTerminal(`بدء حذف التحقق بخطوتين لـ ${targets.length} حساب...`, 'warn');
+    notify(`بدء حذف التحقق بخطوتين لـ ${targets.length} حساب...`, "info");
+
+    try {
+        for (const phone of targets) {
+            logToTerminal(`إلغاء كلمة سر الحساب: ${phone}...`, 'info');
+            try {
+                const res = await fetch(`${API_URL}?action=remove_2fa&phone=${encodeURIComponent(phone)}&current_password=${encodeURIComponent(currentPassword)}`);
+                const data = await res.json();
+                if (data.status === 'success') {
+                    logToTerminal(`[${phone}] ${data.message} 🔓`, 'success');
+                } else {
+                    logToTerminal(`[${phone}] فشل: ${data.message}`, 'error');
+                }
+            } catch(err) {
+                logToTerminal(`[${phone}] خطأ اتصال: ${err.message}`, 'error');
+            }
+        }
+        notify("اكتملت عملية حذف التحقق بخطوتين!", "success");
+    } finally {
+        setBtnLoading(btn, false);
+    }
+});
+
+// 5. رشق إحالات البوت
+document.getElementById('btnExecuteBotReferral').addEventListener('click', async (e) => {
+    const refLink = document.getElementById('botReferralInput').value.trim();
+    const targets = getSelectedPhones('botSessionsBox-chk', isCustomBotTarget);
+    const btn = e.currentTarget;
+
+    if (!refLink) {
+        notify("يرجى إدخال رابط إحالة البوت", "error");
+        return;
+    }
+    if (targets.length === 0) {
+        notify("لم يتم تحديد أي جلسة!", "error");
+        return;
+    }
+
+    setBtnLoading(btn, true, "جاري رشق الإحالات...");
+    logToTerminal(`بدء تنفيذ الإحالة [${refLink}] عبر ${targets.length} جلسة...`, 'warn');
+    notify(`بدء رشق الإحالات عبر ${targets.length} حساب...`, "info");
+
+    try {
+        for (let i = 0; i < targets.length; i++) {
+            const phone = targets[i];
+            logToTerminal(`[${i+1}/${targets.length}] الحساب ${phone}: جاري الدخول للبوت وتخطي الاشتراك الإجباري...`, 'info');
+            
+            try {
+                const res = await fetch(`${API_URL}?action=bot_referral&phone=${encodeURIComponent(phone)}&link=${encodeURIComponent(refLink)}`);
+                const data = await res.json();
+                if (data.status === 'success') {
+                    logToTerminal(`[${phone}] ${data.message} ✅`, 'success');
+                } else {
+                    logToTerminal(`[${phone}] ${data.message} ⚠️`, 'warn');
+                }
+            } catch(err) {
+                logToTerminal(`[${phone}] خطأ شبكة: ${err.message}`, 'error');
+            }
+
+            if (i < targets.length - 1) {
+                await new Promise(r => setTimeout(r, 2000));
+            }
+        }
+        notify("اكتملت عملية رشق الإحالات لجميع الجلسات!", "success");
+    } finally {
+        setBtnLoading(btn, false);
+    }
+});
+
+// 6. الاشتراك التلقائي في قناة / قروب (مع تفريغ الحقل وعرض الخطأ الفعلي)
+document.getElementById('btnExecuteJoinChannel').addEventListener('click', async (e) => {
+    const channelInput = document.getElementById('channelJoinInput');
+    const channel = channelInput.value.trim();
+    const targets = getSelectedPhones('channelSessionsBox-chk', isCustomChannelTarget);
+    const btn = e.currentTarget;
+
+    if (!channel) {
+        notify("يرجى كتابة رابط أو معرف القناة (@username)", "error");
+        return;
+    }
+    if (targets.length === 0) {
+        notify("لم يتم تحديد أي جلسة!", "error");
+        return;
+    }
+
+    setBtnLoading(btn, true, "جاري الاشتراك...");
+    logToTerminal(`بدء الانضمام للقناة [${channel}] عبر ${targets.length} حساب...`, 'warn');
+    notify(`بدء اشتراك ${targets.length} حساب في القناة...`, "info");
+
+    let successCount = 0;
+
+    try {
+        for (let i = 0; i < targets.length; i++) {
+            const phone = targets[i];
+            logToTerminal(`[${i+1}/${targets.length}] الحساب ${phone}: جاري الانضمام إلى ${channel}...`, 'info');
+            
+            try {
+                const res = await fetch(`${API_URL}?action=join_channel&phone=${encodeURIComponent(phone)}&channel=${encodeURIComponent(channel)}`);
+                const data = await res.json();
+                
+                if (data.status === 'success') {
+                    successCount++;
+                    logToTerminal(`[${phone}] تم الانضمام للقناة بنجاح ✅`, 'success');
+                } else {
+                    const errorMsg = data.message || data.output || "حدث خطأ غير معروف أو القناة غير موجودة";
+                    logToTerminal(`[${phone}] فشل: ${errorMsg}`, 'error');
+                }
+            } catch(err) {
+                logToTerminal(`[${phone}] خطأ اتصال: ${err.message}`, 'error');
+            }
+
+            if (i < targets.length - 1) {
+                await new Promise(r => setTimeout(r, 2000));
+            }
+        }
+
+        if (successCount > 0) {
+            channelInput.value = ''; // تفريغ حقل الرابط عند نجاح العملية
+            notify(`تم اكتمال الاشتراك بنجاح لـ (${successCount}) حساب وتفريغ الحقل!`, "success");
+        } else {
+            notify("فشلت عملية الاشتراك لجميع الحسابات، راجع السجل للتفاصيل", "error");
+        }
+    } finally {
+        setBtnLoading(btn, false);
+    }
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+    initTabs();
+    loadSessions();
+});
+</script>
+</body>
+</html>
